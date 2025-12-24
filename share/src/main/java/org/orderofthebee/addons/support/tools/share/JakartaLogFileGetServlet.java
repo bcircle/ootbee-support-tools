@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2016 - 2020 Order of the Bee
+ * Copyright (C) 2016 - 2025 Order of the Bee
  *
  * This file is part of OOTBee Support Tools
  *
@@ -18,18 +18,15 @@
  * <http://www.gnu.org/licenses/>.
  *
  * Linked to Alfresco
- * Copyright (C) 2005 - 2020 Alfresco Software Limited.
+ * Copyright (C) 2005 - 2025 Alfresco Software Limited.
  */
 package org.orderofthebee.addons.support.tools.share;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
-
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 import org.springframework.context.ApplicationContext;
 import org.springframework.extensions.surf.FrameworkBean;
@@ -38,7 +35,6 @@ import org.springframework.extensions.surf.LinkBuilderFactory;
 import org.springframework.extensions.surf.RequestContext;
 import org.springframework.extensions.surf.UserFactory;
 import org.springframework.extensions.surf.WebFrameworkServiceRegistry;
-import org.springframework.extensions.surf.exception.UserFactoryException;
 import org.springframework.extensions.surf.support.ServletRequestContext;
 import org.springframework.extensions.surf.util.URLDecoder;
 import org.springframework.extensions.webscripts.Cache;
@@ -46,10 +42,18 @@ import org.springframework.extensions.webscripts.Status;
 import org.springframework.extensions.webscripts.connector.User;
 import org.springframework.web.context.support.WebApplicationContextUtils;
 
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
 /**
- * @author Axel Faust, <a href="http://acosix.de">Acosix GmbH</a>
+ * @author Axel Faust
  */
-public class LogFileGetServlet extends HttpServlet
+@WebServlet(name = "OOTBee Support Tools - Log File Download", urlPatterns = { "/ootbee-support-tools/log4j-log-file/*" })
+public class JakartaLogFileGetServlet extends HttpServlet
 {
 
     private static final long serialVersionUID = 5162376729083905078L;
@@ -64,6 +68,8 @@ public class LogFileGetServlet extends HttpServlet
 
     protected UserFactory userFactory;
 
+    protected Method userFactoryInitialiseUserMethod;
+
     /**
      *
      * {@inheritDoc}
@@ -72,12 +78,24 @@ public class LogFileGetServlet extends HttpServlet
     public void init() throws ServletException
     {
         super.init();
-        final ApplicationContext context = WebApplicationContextUtils.getRequiredWebApplicationContext(this.getServletContext());
-        this.logFileHandler = context.getBean(LogFileHandler.class);
-        this.serviceRegistry = context.getBean("webframework.service.registry", WebFrameworkServiceRegistry.class);
-        this.frameworkBean = context.getBean("framework.utils", FrameworkBean.class);
-        this.linkBuilder = context.getBean("webframework.factory.linkbuilder.servlet", LinkBuilderFactory.class).newInstance();
-        this.userFactory = context.getBean("user.factory", UserFactory.class);
+        try
+        {
+            final Method getWebApplicationContextMethod = WebApplicationContextUtils.class.getMethod("getRequiredWebApplicationContext",
+                    ServletContext.class);
+            final ApplicationContext context = (ApplicationContext) getWebApplicationContextMethod.invoke(null, this.getServletContext());
+            this.logFileHandler = context.getBean(LogFileHandler.class);
+            this.serviceRegistry = context.getBean("webframework.service.registry", WebFrameworkServiceRegistry.class);
+            this.frameworkBean = context.getBean("framework.utils", FrameworkBean.class);
+            this.linkBuilder = context.getBean("webframework.factory.linkbuilder.servlet", LinkBuilderFactory.class).newInstance();
+            this.userFactory = context.getBean("user.factory", UserFactory.class);
+
+            this.userFactoryInitialiseUserMethod = UserFactory.class.getMethod("initialiseUser", RequestContext.class,
+                    HttpServletRequest.class, String.class);
+        }
+        catch (NoSuchMethodException | SecurityException | InvocationTargetException | IllegalAccessException e)
+        {
+            throw new ServletException("Unable to init servlet", e);
+        }
     }
 
     /**
@@ -97,18 +115,21 @@ public class LogFileGetServlet extends HttpServlet
         final String userEndpointId = (String) context.getAttribute(RequestContext.USER_ENDPOINT);
         try
         {
-            user = this.userFactory.initialiseUser(context, req, userEndpointId);
+            user = (User) this.userFactoryInitialiseUserMethod.invoke(this.userFactory, context, req, userEndpointId);
         }
-        catch (final UserFactoryException ufex)
+        catch (InvocationTargetException e)
         {
-            res.sendError(Status.STATUS_INTERNAL_SERVER_ERROR, ufex.getMessage());
+            res.sendError(Status.STATUS_INTERNAL_SERVER_ERROR, e.getCause().getMessage());
+        }
+        catch (final IllegalAccessException e)
+        {
+            res.sendError(Status.STATUS_INTERNAL_SERVER_ERROR, e.getMessage());
         }
 
         if (user != null && user.isAdmin())
         {
             final String requestURI = req.getRequestURI();
-            String filePath = URLDecoder
-                    .decode(requestURI.substring(req.getContextPath().length() + req.getServletPath().length() + 1));
+            String filePath = URLDecoder.decode(requestURI.substring(req.getContextPath().length() + req.getServletPath().length() + 1));
             if (!filePath.startsWith("/"))
             {
                 filePath = "/" + filePath;
@@ -124,7 +145,9 @@ public class LogFileGetServlet extends HttpServlet
             final String attachParam = req.getParameter("a");
             final boolean attach = attachParam != null && Boolean.parseBoolean(attachParam);
 
-            this.logFileHandler.handleLogFileRequest(filePath, attach, req, res, model);
+            final JakartaHttpServletRequestWrapper reqW = new JakartaHttpServletRequestWrapper(req);
+            final JakartaHttpServletResponseWrapper resW = new JakartaHttpServletResponseWrapper(res);
+            this.logFileHandler.handleLogFileRequest(filePath, attach, () -> reqW, () -> resW, model);
         }
         else
         {

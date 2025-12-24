@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2016 - 2022 Order of the Bee
+ * Copyright (C) 2016 - 2025 Order of the Bee
  *
  * This file is part of OOTBee Support Tools
  *
@@ -18,7 +18,7 @@
  * <http://www.gnu.org/licenses/>.
  *
  * Linked to Alfresco
- * Copyright (C) 2005 - 2022 Alfresco Software Limited.
+ * Copyright (C) 2005 - 2025 Alfresco Software Limited.
  * 
  * This file is part of code forked from the JavaScript Console project
  * which was licensed under the Apache License, Version 2.0 at the time.
@@ -74,37 +74,46 @@ function findAvailableScripts()
     }
 }
 
+function createFile(parent, path) {
+    var name, foundNode;
+    name = path.shift();
+    if (path.length > 0) {
+        foundNode = parent.childByNamePath(name);
+        if (foundNode !== null && !foundNode.isContainer){
+            throw new Error('Path element is not a folder');
+        }else{
+            return createFile(foundNode || parent.createFolder(name), path);
+        }
+    }
+    return parent.createFile(name);
+}
+
 function saveScript()
 {
-    var scriptFolder, scriptFile, isUpdate;
-
-    isUpdate = String(args.isUpdate) === 'true';
+    var scriptFolder, scriptFile;
 
     scriptFolder = search.selectNodes('/app:company_home/app:dictionary/app:scripts')[0];
     if (scriptFolder)
     {
-        if (isUpdate)
-        {
-            scriptFile = scriptFolder.childByNamePath(args.name);
-        }
-        else
-        {
-            try
-            {
-                scriptFile = scriptFolder.createFile(args.name);
-            }
-            catch (e)
-            {
-                if (e.message && e.message.indexOf('FileExistsException'))
-                {
-                    e.code = 409;
+        if (args.nodeRef !== null || args.namePath !== null) {
+            if (args.nodeRef !== null) {// now update always with nodeRef
+                scriptFile = search.findNode(args.nodeRef);
+            } else if (args.namePath !== null) {
+                try {
+                    scriptFile = createFile(scriptFolder, ('' + args.namePath).split(/\//));
+                } catch (e) {
+                    if (e.message && e.message.indexOf('FileExistsException')) {
+                        e.code = 409;
+                    }
+                    throw e;
                 }
-                throw e;
             }
+            scriptFile.content = json.get('jsScript');
+            scriptFile.properties['jsc:freemarkerScript'].content = json.get('fmScript');
+            scriptFile.save();
+        } else{
+            logger.warn('No nodeRef or namePath argument');
         }
-        scriptFile.content = json.get('jsScript');
-        scriptFile.properties['jsc:freemarkerScript'].content=json.get('fmScript');
-        scriptFile.save();
     }
     else
     {

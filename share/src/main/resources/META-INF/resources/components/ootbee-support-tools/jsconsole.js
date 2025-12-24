@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2016 - 2022 Order of the Bee
+ * Copyright (C) 2016 - 2025 Order of the Bee
  *
  * This file is part of OOTBee Support Tools
  *
@@ -18,7 +18,7 @@
  * <http://www.gnu.org/licenses/>.
  *
  * Linked to Alfresco
- * Copyright (C) 2005 - 2022 Alfresco Software Limited.
+ * Copyright (C) 2005 - 2025 Alfresco Software Limited.
  * 
  * This file is part of code forked from the JavaScript Console project
  * which was licensed under the Apache License, Version 2.0 at the time.
@@ -399,19 +399,35 @@ if (typeof OOTBee === 'undefined' || !OOTBee)
             this.widgets.docsMenuButton.getMenu().setItemGroupTitle('Freemarker', 1);
             this.widgets.docsMenuButton.getMenu().setItemGroupTitle('Lucene', 2);
             this.widgets.docsMenuButton.getMenu().setItemGroupTitle('Webscripts', 3);
-            this.widgets.docsMenuButton.getMenu().cfg.setProperty('zIndex', 2);
+            this.widgets.docsMenuButton.getMenu().cfg.setProperty('zIndex', 10);
+        },
+
+        initSubmenuIds: function JavaScriptConsole_initSubmenuIds(entry, suffix) {
+            if (entry.submenu) {
+                entry.submenu.id = entry.submenu.id + suffix;
+                entry.submenu.itemdata.forEach(function (f) {
+                    this.initSubmenuIds(f, suffix);
+                }.bind(this));
+            }
         },
 
         createOrUpdateScriptsSaveMenu: function JavaScriptConsole_createOrUpdateScriptsSaveMenu(listOfScripts)
         {
-            var saveMenuItems = [{
+            var scripts, saveMenuItems;
+
+            saveMenuItems = [{
                 text: this.msg('button.save.create.new'),
                 value: 'NEW'
             }];
 
             if (listOfScripts)
             {
-                saveMenuItems.push(listOfScripts);
+                scripts = JSON.parse(JSON.stringify(listOfScripts));
+                scripts.forEach(function(e) {
+                    this.initSubmenuIds.call(this, e, "-scriptsave");
+                }.bind(this));
+
+                saveMenuItems.push(scripts);
             }
 
             if (this.widgets.saveMenuButton)
@@ -431,20 +447,27 @@ if (typeof OOTBee === 'undefined' || !OOTBee)
                     container: this.id + '-scriptsave'
                 });
                 this.widgets.saveMenuButton.getMenu().subscribe('click', this.onSaveScriptClick, this);
-                this.widgets.saveMenuButton.getMenu().cfg.setProperty('zIndex', 2);
+                this.widgets.saveMenuButton.getMenu().cfg.setProperty('zIndex', 10);
             }
         },
 
         createOrUpdateScriptsLoadMenu: function JavaScriptConsole_createOrUpdateScriptsLoadMenu(listOfScripts)
         {
-            var loadMenuItems = [{
+            var scripts, loadMenuItems;
+
+            loadMenuItems = [{
                 text: this.msg('button.load.create.new'),
                 value: 'NEW'
             }];
 
             if (listOfScripts)
             {
-                loadMenuItems.push(listOfScripts);
+                scripts = JSON.parse(JSON.stringify(listOfScripts));
+                scripts.forEach(function(e) {
+                    this.initSubmenuIds.call(this, e, "-scriptload");
+                }.bind(this));
+
+                loadMenuItems.push(scripts);
             }
 
             if (this.widgets.loadMenuButton)
@@ -464,7 +487,7 @@ if (typeof OOTBee === 'undefined' || !OOTBee)
                     container: this.id + '-scriptload'
                 });
                 this.widgets.loadMenuButton.getMenu().subscribe('click', this.onLoadScriptClick, this);
-                this.widgets.loadMenuButton.getMenu().cfg.setProperty('zIndex', 2);
+                this.widgets.loadMenuButton.getMenu().cfg.setProperty('zIndex', 10);
             }
         },
 
@@ -517,7 +540,7 @@ if (typeof OOTBee === 'undefined' || !OOTBee)
             }
 
             this.widgets.themeMenuButton.getMenu().subscribe('click', this.onThemeSelection, this);
-            this.widgets.themeMenuButton.getMenu().cfg.setProperty('zIndex', 2);
+            this.widgets.themeMenuButton.getMenu().cfg.setProperty('zIndex', 10);
         },
 
         /**
@@ -539,7 +562,7 @@ if (typeof OOTBee === 'undefined' || !OOTBee)
                 disabled: false
             });
 
-            this.widgets.dumpDisplayMenu.getMenu().cfg.setProperty('zIndex', 2);
+            this.widgets.dumpDisplayMenu.getMenu().cfg.setProperty('zIndex', 10);
             this.widgets.dumpDisplayMenu.on('appendTo', function ()
             {
                 menu = this.getMenu();
@@ -755,12 +778,11 @@ if (typeof OOTBee === 'undefined' || !OOTBee)
          */
         generateTemplates: function JavaScriptConsole_generateTemplates(dictionary)
         {
-            var templates, propertyNames, assocNames, ternProperties, t, cls, type, templDescription, parent, aspect, property, prop, propDescription, association, assoc, assocDescription;
+            var templates, propertyNames, assocNames, t, cls, templDescription, parent, aspect, property, prop, propDescription, association, assoc, assocDescription;
 
             templates = [];
             propertyNames = [];
             assocNames = [];
-            ternProperties = [];
 
             for (t in dictionary)
             {
@@ -820,20 +842,6 @@ if (typeof OOTBee === 'undefined' || !OOTBee)
                                         className: 'CodeMirror-hint-alfresco'
                                     });
                                     propertyNames.push(prop.name);
-                                
-                                    type = this.getTernType(prop.dataType, prop.multiValued);
-                                    ternProperties[prop.name] = {
-                                        '!type': type,
-                                        '!doc': propDescription
-                                    };
-
-                                    if (prop.name.startsWith('cm:'))
-                                    {
-                                        ternProperties[prop.name.replace(/^cm\:/,'')] = {
-                                            '!type': type,
-                                            '!doc': propDescription
-                                        };
-                                    }
                                 }
                             }
                         }
@@ -909,11 +917,6 @@ if (typeof OOTBee === 'undefined' || !OOTBee)
                 });
             }
 
-            CodeMirror.tern.getDef()[1].Properties = {
-                '!type': 'fn()',
-                'prototype': ternProperties,
-            };
-
             templates.sort(function(a,b)
             {
                 return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
@@ -927,9 +930,8 @@ if (typeof OOTBee === 'undefined' || !OOTBee)
          */
         generateActionDefinitionTemplates: function JavaScriptConsole_generateActionDefinitionTemplates(definitions)
         {
-            var ternProperties, templates, t, action, templDescription, p, param, paramDescription;
+            var templates, t, action, templDescription, p;
 
-            ternProperties = {};
             templates = [];
 
             for (t in definitions)
@@ -950,23 +952,6 @@ if (typeof OOTBee === 'undefined' || !OOTBee)
                         {
                             param = action.parameterDefinitions[p];
                             templDescription += '\t\t\t\t\t' + param.name + ' (' + param.type + ')\n';
-
-                            paramDescription = 'action:\t\t\t' + action.name + '\nname:\t\t\t' + param.name +
-                                '\ndisplayLabel:\t\t' + param.displayLabel + '\ntype:\t\t\t\t' + param.type +
-                                '\nmultiValued:\t\t' + param.isMultiValued + '\nmandatory:\t\t\t' + param.isMandatory +
-                                '\nconstraint:\t\t\t' + param.constraint;
-
-                            if (ternProperties.hasOwnProperty(param.name))
-                            {
-                                ternProperties[param.name]['!doc'] = ternProperties[param.name]['!doc'] + '\n-------------------------------------\n' + paramDescription;
-                            }
-                            else
-                            {
-                                ternProperties[param.name] = {
-                                    '!type': this.getTernType(param.type, param.isMultiValued),
-                                    '!doc': paramDescription
-                                };
-                            }
                         }
                     }
 
@@ -978,11 +963,6 @@ if (typeof OOTBee === 'undefined' || !OOTBee)
                     });
                 }
             }
-
-            CodeMirror.tern.getDef()[1].actionParameters = {
-                '!type': 'fn()',
-                'prototype': ternProperties,
-            };
 
             templates.sort(function(a,b)
             {
@@ -1025,103 +1005,6 @@ if (typeof OOTBee === 'undefined' || !OOTBee)
             });
 
             return templates;
-        },
-    
-        /**
-         * maps the alfresco specific type to a tern compatible type
-         */
-        getTernType: function JavaScriptConsole_getTernType(propertyDataType, isMultiValued)
-        {
-            var type;
-            if (propertyDataType === 'd:text')
-            {
-                if (isMultiValued)
-                {
-                    type = '[string]';
-                }
-                else
-                {
-                    type = 'string';
-                }
-            }
-            else if (propertyDataType === 'd:noderef')
-            {
-                if (isMultiValued)
-                {
-                    type = '[ScriptNode]';
-                }
-                else
-                {
-                    type = 'ScriptNode';
-                }
-            }
-            else if(propertyDataType === 'd:category')
-            {
-                if (isMultiValued)
-                {
-                    type = '[CategoryNode]';
-                }
-                else
-                {
-                    type = 'CategoryNode';
-                }
-            }
-            else if (propertyDataType === 'd:boolean')
-            {
-                if (isMultiValued)
-                {
-                    type = '[bool]';
-                }
-                else
-                {
-                    type = 'bool';
-                }
-            }
-            else if (propertyDataType === 'd:date' || propertyDataType === 'd:datetime')
-            {
-                if (isMultiValued)
-                {
-                    type = '[Date.prototype]';
-                }
-                else
-                {
-                    type = 'Date.prototype';
-                }
-            }
-            else if (propertyDataType === 'd:int' || propertyDataType === 'd:float' || propertyDataType === 'd:double' || propertyDataType === 'd:long')
-            {
-                if (isMultiValued)
-                {
-                    type = '[number]';
-                }
-                else
-                {
-                    type = 'number';
-                }
-            }
-            else if (propertyDataType === 'd:content')
-            {
-                if (isMultiValued)
-                {
-                    type = '[ScriptContent]';
-                }
-                else
-                {
-                    type = 'ScriptContent';
-                }
-            }
-            else
-            {
-                if (isMultiValued)
-                {
-                    type = '[?]';
-                }
-                else
-                {
-                    type = '?';
-                }
-            }
-            return type;
         },
 
         beforeUnload: function JavaScriptConsole_beforeUnload()
@@ -1727,7 +1610,7 @@ if (typeof OOTBee === 'undefined' || !OOTBee)
 
             stats = Dom.get(this.id + '-executionStatsSimple');
             now = new Date();
-            nowAsString = now.getFullYear() + '-' + (now.getMonth() <= 10 ? '0' : '') + (now.getMonth() + 1) + '-' + (now.getDate() < 10 ? '0' : '') + now.getDate() + ' ' + (now.getHours() < 10 ? '0' : '') + now.getHours() + ':' + (now.getMinutes() < 10 ? '0' : '') + now.getMinutes() + ':' + (now.getSeconds() < 10 ? '0' : '') + now.getSeconds();
+            nowAsString = now.getFullYear() + '-' + (now.getMonth() < 9 ? '0' : '') + (now.getMonth() + 1) + '-' + (now.getDate() < 10 ? '0' : '') + now.getDate() + ' ' + (now.getHours() < 10 ? '0' : '') + now.getHours() + ':' + (now.getMinutes() < 10 ? '0' : '') + now.getMinutes() + ':' + (now.getSeconds() < 10 ? '0' : '') + now.getSeconds();
             text = ' - ' + this.msg('label.stats.executed.last') + ' ' + (overallPerf) + 'ms (' + nowAsString + ')';
             stats.innerHTML = '';
             stats.appendChild(document.createTextNode(text));
@@ -2237,7 +2120,7 @@ if (typeof OOTBee === 'undefined' || !OOTBee)
         saveAsExistingScript: function JavaScriptConsole_saveAsExistingScript(filename, nodeRef)
         {
             Alfresco.util.Ajax.jsonPut({
-                url: Alfresco.constants.PROXY_URI + 'ootbee/jsconsole/savescript.json?name=' + encodeURIComponent(filename) + '&isUpdate=true',
+                url: Alfresco.constants.PROXY_URI + 'ootbee/jsconsole/savescript.json?nodeRef=' + encodeURIComponent(nodeRef),
                 dataObj: {
                     jsScript: this.widgets.codeMirrorScript.getValue(),
                     fmScript: this.widgets.codeMirrorTemplate.getValue()
@@ -2260,7 +2143,7 @@ if (typeof OOTBee === 'undefined' || !OOTBee)
                         {
                             title: this.msg('message.failure'),
                             text: res.json && res.json.message ? res.json.message : this.msg('error.script.save', filename),
-                            zIndex: 5 // added to internal default - high enough offset to ensure it should overlay any part of editor
+                            zIndex: 10 // added to internal default - high enough offset to ensure it should overlay any part of editor
                         });
                         
                     },
@@ -2269,10 +2152,14 @@ if (typeof OOTBee === 'undefined' || !OOTBee)
             });
         },
 
+        /**
+         *
+         * @param filename either file name or path relative from scripts folder
+         */
         saveAsNewScript: function JavaScriptConsole_saveAsNewScript(filename)
         {
             Alfresco.util.Ajax.jsonPut({
-                url: Alfresco.constants.PROXY_URI + 'ootbee/jsconsole/savescript.json?name=' + encodeURIComponent(filename) + '&isUpdate=false',
+                url: Alfresco.constants.PROXY_URI + 'ootbee/jsconsole/savescript.json?namePath=' + encodeURIComponent(filename),
                 dataObj: {
                     jsScript: this.widgets.codeMirrorScript.getValue(),
                     fmScript: this.widgets.codeMirrorTemplate.getValue()
@@ -2295,7 +2182,7 @@ if (typeof OOTBee === 'undefined' || !OOTBee)
                         {
                             title: this.msg('message.failure'),
                             text: res.json && res.json.message ? res.json.message : this.msg('error.script.save', filename),
-                            zIndex: 5 // added to internal default - high enough offset to ensure it should overlay any part of editor
+                            zIndex: 10 // added to internal default - high enough offset to ensure it should overlay any part of editor
                         });
                         
                     },
@@ -2352,7 +2239,8 @@ if (typeof OOTBee === 'undefined' || !OOTBee)
                             this.destroy();
                         },
                         isDefault: true
-                    }]
+                    }],
+                    zIndex: 10 // added to internal default - high enough offset to ensure it should overlay any part of editor
                 });
             }
         },

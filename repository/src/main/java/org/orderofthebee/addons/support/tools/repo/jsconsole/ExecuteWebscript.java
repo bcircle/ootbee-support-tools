@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2016 - 2022 Order of the Bee
+ * Copyright (C) 2016 - 2025 Order of the Bee
  *
  * This file is part of OOTBee Support Tools
  *
@@ -18,7 +18,7 @@
  * <http://www.gnu.org/licenses/>.
  *
  * Linked to Alfresco
- * Copyright (C) 2005 - 2022 Alfresco Software Limited.
+ * Copyright (C) 2005 - 2025 Alfresco Software Limited.
  *
  * This file is part of code forked from the JavaScript Console project
  * which was licensed under the Apache License, Version 2.0 at the time.
@@ -118,6 +118,8 @@ public class ExecuteWebscript extends AbstractWebScript
     private String preRollScriptClasspath;
 
     private String postRollScriptClasspath;
+    
+    private boolean allowUnrestrictedScripts;
 
     /**
      *
@@ -159,7 +161,7 @@ public class ExecuteWebscript extends AbstractWebScript
             // Note: Need to use import here so the user-supplied script may also import scripts
             final String script = "<import resource=\"classpath:" + this.preRollScriptClasspath + "\">\n" + jsreq.script;
 
-            final ScriptContent scriptContent = new StringScriptContent(script + this.postRollScript);
+            final ScriptContent scriptContent = new StringScriptContent(script + this.postRollScript, this.allowUnrestrictedScripts);
 
             final int providedScriptLength = this.countScriptLines(jsreq.script, false);
             final int resolvedScriptLength = this.countScriptLines(script, true);
@@ -610,15 +612,23 @@ public class ExecuteWebscript extends AbstractWebScript
     {
         this.postRollScriptClasspath = postRollScriptClasspath;
     }
+    
+    public final void setAllowUnrestrictedScripts(boolean allowUnrestrictedScripts)
+    {
+      this.allowUnrestrictedScripts = allowUnrestrictedScripts;
+    }
 
     private static class StringScriptContent implements ScriptContent
     {
 
         private final String content;
+                
+        private final boolean secure;
 
-        public StringScriptContent(final String content)
+        public StringScriptContent(final String content, final boolean secure)
         {
             this.content = content;
+            this.secure = secure;
         }
 
         @Override
@@ -654,7 +664,7 @@ public class ExecuteWebscript extends AbstractWebScript
         @Override
         public boolean isSecure()
         {
-            return true;
+            return this.secure;
         }
     }
 

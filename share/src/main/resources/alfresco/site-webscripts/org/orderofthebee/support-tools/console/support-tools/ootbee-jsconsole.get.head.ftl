@@ -1,5 +1,5 @@
 <#--
-Copyright (C) 2016 - 2022 Order of the Bee
+Copyright (C) 2016 - 2025 Order of the Bee
 
 This file is part of OOTBee Support Tools
 
@@ -18,7 +18,7 @@ along with OOTBee Support Tools. If not, see
 <http://www.gnu.org/licenses/>.
 
 Linked to Alfresco
-Copyright (C) 2005 - 2022 Alfresco Software Limited.
+Copyright (C) 2005 - 2025 Alfresco Software Limited.
  
 This file is part of code forked from the JavaScript Console project
 which was licensed under the Apache License, Version 2.0 at the time.
@@ -123,12 +123,11 @@ addon.
 <@script type="text/javascript" src="${page.url.context}/res/components/ootbee-support-tools/codemirror/addon/tern/tern-hover.js"></@script>
 <@script type="text/javascript" src="${page.url.context}/res/components/ootbee-support-tools/codemirror/addon/tern/tern-hyperlink.js"></@script>
 
-<!-- tern definitions for ecma5 and alfresco-->
+<!-- tern definitions for ecma5 -->
 <@script type="text/javascript" src="${page.url.context}/res/components/ootbee-support-tools/codemirror/addon/tern/defs/ecma5.json.js"></@script>
-<@script type="text/javascript" src="${page.url.context}/res/components/ootbee-support-tools/codemirror/addon/tern/defs/alfresco-json.js"></@script>
-<@script type="text/javascript" src="${page.url.context}/res/components/ootbee-support-tools/codemirror/addon/tern/defs/alfresco-webscripts-tern.js"></@script>
-<@script type="text/javascript" src="${page.url.context}/res/components/ootbee-support-tools/codemirror/addon/tern/defs/alfresco-batchprocessing-tern.js"></@script>
 
+<!-- dynamic tern definitions for alfresco -->
+<@script type="text/javascript" src="${page.url.context}/res/components/ootbee-support-tools/codemirror/addon/tern/defs/alfresco-json-dynamic.js"></@script>
 
 <!-- codemirror ui-->
 <@script type="text/javascript" src="${page.url.context}/res/components/ootbee-support-tools/codemirror-ui/js/codemirror-ui.js"></@script>

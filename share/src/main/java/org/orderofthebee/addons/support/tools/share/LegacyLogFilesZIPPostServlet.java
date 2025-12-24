@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2016 - 2020 Order of the Bee
+ * Copyright (C) 2016 - 2025 Order of the Bee
  *
  * This file is part of OOTBee Support Tools
  *
@@ -18,7 +18,7 @@
  * <http://www.gnu.org/licenses/>.
  *
  * Linked to Alfresco
- * Copyright (C) 2005 - 2020 Alfresco Software Limited.
+ * Copyright (C) 2005 - 2025 Alfresco Software Limited.
  */
 package org.orderofthebee.addons.support.tools.share;
 
@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 
 import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -50,9 +51,10 @@ import org.springframework.extensions.webscripts.servlet.FormData;
 import org.springframework.web.context.support.WebApplicationContextUtils;
 
 /**
- * @author Axel Faust, <a href="http://acosix.de">Acosix GmbH</a>
+ * @author Axel Faust
  */
-public class LogFilesZIPPostServlet extends HttpServlet
+@WebServlet(name = "OOTBee Support Tools - Log ZIP File Download", urlPatterns = { "/ootbee-support-tools/log4j-log-files.zip" })
+public class LegacyLogFilesZIPPostServlet extends HttpServlet
 {
 
     private static final long serialVersionUID = 6594146886154738251L;
@@ -121,7 +123,9 @@ public class LogFilesZIPPostServlet extends HttpServlet
             final String[] paths = rqData.getParameters().get("paths");
             filePaths.addAll(Arrays.asList(paths));
 
-            this.logFileHandler.handleLogZipRequest(filePaths, req, res, model);
+            final LegacyHttpServletRequestWrapper reqW = new LegacyHttpServletRequestWrapper(req);
+            final LegacyHttpServletResponseWrapper resW = new LegacyHttpServletResponseWrapper(res);
+            this.logFileHandler.handleLogZipRequest(filePaths, () -> reqW, () -> resW, model);
         }
         else
         {
